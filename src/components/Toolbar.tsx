@@ -11,6 +11,7 @@ interface ToolbarProps {
   onToggleGrid: () => void;
   onToggleWireframe: () => void;
   modelName: string;
+  onSwitchModel?: () => void;
   wsState?: 'disconnected' | 'connecting' | 'connected';
   bgColor: string;
   onBgColorChange: (color: string) => void;
@@ -45,6 +46,7 @@ export default function Toolbar({
   onToggleGrid,
   onToggleWireframe,
   modelName,
+  onSwitchModel,
   wsState,
   bgColor,
   onBgColorChange,
@@ -105,8 +107,19 @@ export default function Toolbar({
       />
 
       {modelName && (
-        <span className="ml-2 border-l border-gray-600/40 pl-2 text-[11px] text-gray-500 truncate max-w-[120px]">
-          {modelName}
+        <span className="ml-2 flex items-center gap-1 border-l border-gray-600/40 pl-2">
+          <span className="truncate max-w-[100px] text-[11px] text-gray-500">
+            {modelName}
+          </span>
+          {onSwitchModel && (
+            <button
+              onClick={onSwitchModel}
+              className="rounded-md px-1.5 py-0.5 text-[10px] text-blue-400 transition hover:bg-gray-700/60 hover:text-blue-300"
+              title="切换模型"
+            >
+              切换
+            </button>
+          )}
         </span>
       )}
       <span className="ml-2 border-l border-gray-600/40 pl-2">

@@ -20,8 +20,10 @@ export function useWebSocket(path: string, options: UseWebSocketOptions) {
 
   const buildUrl = useCallback(() => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    // Backend is proxied through Vite on same origin, or direct connect
-    return `${proto}://${location.host}${path}`;
+    // In dev (Vite on 5173), connect directly to backend port 8090
+    // In production (backend serves everything on 8090), same origin works
+    const port = location.port === '5173' ? '8091' : location.port;
+    return `${proto}://${location.hostname}:${port}${path}`;
   }, [path]);
 
   const connect = useCallback(() => {

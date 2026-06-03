@@ -10,11 +10,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/v1': {
-        target: 'http://127.0.0.1:8090',
+        target: 'http://127.0.0.1:8091',
         changeOrigin: true,
       },
       '/ws/viewer': {
-        target: 'ws://127.0.0.1:8090',
+        target: 'ws://127.0.0.1:8091',
+        ws: true,
         changeOrigin: true,
       },
     },

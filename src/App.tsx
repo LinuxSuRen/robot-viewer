@@ -34,6 +34,11 @@ function saveBgColor(color: string) {
   } catch { /* noop */ }
 }
 
+interface PendingModel {
+  file: File;
+  relativePath: string;
+}
+
 export default function App() {
   const { viewerRef, loadURDF, loadMesh, setFileMap, setJointAngles, setAxesVisible, setGridVisible, setWireframe, resetCamera, setBackgroundColor } =
     useSceneManager();
@@ -50,6 +55,21 @@ export default function App() {
   const [wireframe, setWireframeState] = useState(false);
   const [modelName, setModelName] = useState('');
   const [bgColor, setBgColor] = useState(loadBgColor);
+  const [pendingModels, setPendingModels] = useState<PendingModel[] | null>(null);
+  const [availableModels, setAvailableModels] = useState<PendingModel[] | null>(null);
+
+  const doLoadModel = useCallback(async (modelFile: File) => {
+    const result = await loadURDF(modelFile);
+    if (result) {
+      setJoints(result.joints);
+      setModelName(modelFile.name);
+      await api.updateModelInfo({
+        name: modelFile.name,
+        jointCount: result.joints.length,
+        linkCount: 0,
+      });
+    }
+  }, [loadURDF, setJoints]);
 
   const handleFileLoad = useCallback(
     async (file: File) => {
@@ -82,8 +102,7 @@ export default function App() {
 
       // Build file map keyed by webkitRelativePath
       const fileMap: FileMap = new Map();
-      let urdfFile: File | null = null;
-      let xacroFile: File | null = null;
+      const modelFiles: PendingModel[] = [];
       let rootDir = '';
 
       for (const file of files) {
@@ -100,16 +119,12 @@ export default function App() {
         }
 
         const ext = normalizedPath.split('.').pop()?.toLowerCase();
-        if (ext === 'urdf' && !urdfFile) {
-          urdfFile = file;
-        }
-        if (ext === 'xacro' && !xacroFile) {
-          xacroFile = file;
+        if (ext === 'urdf' || ext === 'xacro') {
+          modelFiles.push({ file, relativePath: normalizedPath });
         }
       }
 
-      const modelFile = urdfFile || xacroFile;
-      if (!modelFile) {
+      if (modelFiles.length === 0) {
         console.warn('No URDF or Xacro file found in directory');
         return;
       }
@@ -117,20 +132,27 @@ export default function App() {
       // Set the file map for mesh resolution
       setFileMap(fileMap, rootDir);
 
-      // Load the model
-      const result = await loadURDF(modelFile);
-      if (result) {
-        setJoints(result.joints);
-        setModelName(modelFile.name);
-        await api.updateModelInfo({
-          name: modelFile.name,
-          jointCount: result.joints.length,
-          linkCount: 0,
-        });
+      setAvailableModels(modelFiles);
+
+      if (modelFiles.length === 1) {
+        await doLoadModel(modelFiles[0].file);
+      } else {
+        setPendingModels(modelFiles);
       }
     },
-    [loadURDF, setFileMap, setJoints]
+    [setFileMap, doLoadModel]
   );
+
+  const handleSelectModel = useCallback(async (model: PendingModel) => {
+    setPendingModels(null);
+    await doLoadModel(model.file);
+  }, [doLoadModel]);
+
+  const handleSwitchModel = useCallback(() => {
+    if (availableModels) {
+      setPendingModels(availableModels);
+    }
+  }, [availableModels]);
 
   const handleJointChange = useCallback(
     (angles: Record<string, number>) => {
@@ -205,6 +227,7 @@ export default function App() {
         onToggleGrid={handleToggleGrid}
         onToggleWireframe={handleToggleWireframe}
         modelName={modelName}
+        onSwitchModel={availableModels && availableModels.length > 1 ? handleSwitchModel : undefined}
         wsState={wsState}
         bgColor={bgColor}
         onBgColorChange={handleBgColorChange}
@@ -212,6 +235,40 @@ export default function App() {
       {joints.length > 0 && (
         <div className="fixed left-4 top-16 z-40 w-56">
           <JointPanel joints={joints} onJointChange={handleJointChange} />
+        </div>
+      )}
+
+      {pendingModels && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setPendingModels(null)}
+        >
+          <div
+            className="w-96 rounded-2xl border border-gray-700 bg-gray-900 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-1 text-sm font-semibold text-gray-200">选择模型文件</h2>
+            <p className="mb-3 text-[11px] text-gray-500">
+              目录中发现 {pendingModels.length} 个模型文件，请选择要加载的：
+            </p>
+            <div className="space-y-1">
+              {pendingModels.map((m) => (
+                <button
+                  key={m.relativePath}
+                  onClick={() => handleSelectModel(m)}
+                  className="w-full rounded-lg border border-gray-700/60 bg-gray-800/50 px-3 py-2 text-left text-[12px] text-gray-300 transition hover:border-blue-500/50 hover:bg-gray-700/50"
+                >
+                  {m.relativePath}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPendingModels(null)}
+              className="mt-3 w-full rounded-lg bg-gray-800 py-2 text-[12px] text-gray-400 transition hover:bg-gray-700"
+            >
+              取消
+            </button>
+          </div>
         </div>
       )}
     </div>

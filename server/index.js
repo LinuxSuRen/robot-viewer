@@ -63,7 +63,7 @@ function serveIndex(res) {
   return false;
 }
 
-const PORT = 8090;
+const PORT = parseInt(process.env.PORT || '8091', 10);
 
 // ─── In-memory state ────────────────────────────────────────────────
 const joints = {};
