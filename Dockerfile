@@ -27,6 +27,6 @@ COPY --from=build /app/package.json /app/package-lock.json ./
 # 只安装运行时依赖
 RUN npm ci --omit=dev
 
-EXPOSE 8090
+EXPOSE 8091
 
 CMD ["node", "server/index.js"]
