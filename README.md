@@ -60,3 +60,7 @@ npm run build
 2. 使用“Load Folder”加载带有 URDF/Xacro 和 Mesh 文件的目录。
 3. 加载 URDF/Xacro 后，右侧将显示关节控制面板，可实时调整。
 4. 使用顶部工具栏切换相机视角、坐标轴、网格和线框显示。
+
+## 相关项目
+
+- [nav4sim](https://github.com/LinuxSuRen/nav4sim) — 基于 Gazebo Classic 的 ROS 2 导航仿真环境。clone 后把它的 `urdf/` 目录拖进本查看器，即可在浏览器中预览其中的机器人模型（含激光雷达）。
